@@ -288,23 +288,32 @@ button.primary:hover { background: var(--accent-strong); }
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 0 4px;
 }
 
 .note-title-input,
 .note-content-input {
   width: 100%;
-  padding: 12px 14px;
+  padding: 14px 16px;
   border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--panel);
+  border: 1.5px solid #b7b7b7;
+  background: #0f1115;
   color: var(--text);
-  font-size: 16px;
+  font-size: 17px;
+}
+
+.note-title-input {
+  height: 52px;
 }
 
 .note-content-input {
   min-height: 280px;
   resize: vertical;
   line-height: 1.4;
+  border-radius: 14px;
+  border-color: #2a2d34;
+  background: #13151b;
+  font-size: 16px;
 }
 
 .save-row {

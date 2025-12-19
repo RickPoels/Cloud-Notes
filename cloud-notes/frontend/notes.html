@@ -112,7 +112,7 @@
           "Content-Type": "application/json",
           Authorization: "Bearer " + token
         },
-        body: JSON.stringify({ title: "Untitled", content: "", folder_id: currentFolderId })
+        body: JSON.stringify({ title: "", content: "", folder_id: currentFolderId })
       });
       if (r.ok) {
         const data = await r.json().catch(() => ({}));
@@ -137,7 +137,7 @@
     function deriveTitle(note) {
       const t = (note.title || "").trim();
       if (t) return t.length > 60 ? t.slice(0, 60) + "…" : t;
-      return "Untitled";
+      return "";
     }
 
     function renderNote(detail) {
@@ -364,7 +364,7 @@
       if (!currentVaultId || !activeNoteId) return;
       noteStatus.textContent = "Saving...";
       const body = {
-        title: noteTitleInput.value.trim() || "Untitled",
+        title: noteTitleInput.value,
         content: noteContentInput.value,
         folder_id: currentFolderId
       };
