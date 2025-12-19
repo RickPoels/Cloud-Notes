@@ -7,79 +7,170 @@
   <title>Cloud Notes</title>
 </head>
 <body>
-  <div class="row">
-    <h1 style="margin:0">My Notes</h1>
-    <button id="logoutBtn">Logout</button>
-  </div>
+  <div class="layout">
+    <div class="ribbon">
+      <button title="Explorer">📂</button>
+      <button title="Search">🔍</button>
+      <button title="Backlinks">🔗</button>
+      <button title="Settings">⚙️</button>
+    </div>
 
-  <div class="card">
-    <textarea id="content" rows="4" placeholder="Write a note..."></textarea>
-    <button id="saveBtn">Save note</button>
-    <div id="msg" class="small"></div>
-  </div>
+    <aside class="sidebar">
+      <div class="section-title">Notebook</div>
+      <div class="actions">
+        <button id="newNoteBtn" class="primary">+ New</button>
+        <button id="refreshBtn">⟳</button>
+      </div>
+      <input id="searchInput" placeholder="Search notes..." />
+      <div id="fileList" class="file-list"></div>
+    </aside>
 
-  <div id="notes"></div>
+    <main class="main">
+      <div class="topbar">
+        <button class="nav-btn" title="Back">←</button>
+        <button class="nav-btn" title="Forward">→</button>
+        <div class="tabstrip" id="tabStrip"></div>
+        <button id="logoutBtn" class="nav-btn" title="Logout">⎋</button>
+      </div>
+
+      <div class="note-pane" id="notePane">
+        <h1>Welcome</h1>
+        <p>Select a note on the left or create a new one.</p>
+      </div>
+
+      <div class="statusbar" id="statusBar">
+        <span id="wordCount">0 words</span>
+        <span id="charCount">0 chars</span>
+        <span id="backlinks">0 backlinks</span>
+      </div>
+    </main>
+
+    <aside class="outline">
+      <h3>Outline</h3>
+      <div id="outlineList"></div>
+    </aside>
+  </div>
 
   <script>
     const token = localStorage.getItem("token");
     if (!token) window.location.href = "/login.html";
 
-    const notesDiv = document.getElementById("notes");
-    const msg = document.getElementById("msg");
+    const fileList = document.getElementById("fileList");
+    const notePane = document.getElementById("notePane");
+    const tabStrip = document.getElementById("tabStrip");
+    const wordCount = document.getElementById("wordCount");
+    const charCount = document.getElementById("charCount");
+    const outlineList = document.getElementById("outlineList");
+    const searchInput = document.getElementById("searchInput");
+
+    let notesCache = [];
+    let activeNoteId = null;
 
     document.getElementById("logoutBtn").onclick = () => {
       localStorage.removeItem("token");
       window.location.href = "/login.html";
     };
 
-    async function loadNotes() {
-      notesDiv.innerHTML = "";
-      const r = await fetch("/notes", {
-        headers: { Authorization: "Bearer " + token }
-      });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        msg.textContent = data.error || "Error loading notes";
-        if (r.status === 401) {
-          localStorage.removeItem("token");
-          window.location.href = "/login.html";
-        }
-        return;
-      }
-
-      data.notes.forEach(n => {
-        const el = document.createElement("div");
-        el.className = "card";
-        el.innerHTML = `
-          <div class="small">${new Date(n.created_at).toLocaleString()}</div>
-          <div class="note">${escapeHtml(n.content)}</div>
-        `;
-        notesDiv.appendChild(el);
-      });
-    }
-
-    document.getElementById("saveBtn").onclick = async () => {
-      const content = document.getElementById("content").value;
-      msg.textContent = "";
-
+    document.getElementById("newNoteBtn").onclick = async () => {
       const r = await fetch("/notes", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: "Bearer " + token
         },
-        body: JSON.stringify({ content })
+        body: JSON.stringify({ content: "New note" })
       });
-
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        msg.textContent = data.error || "Error saving note";
-        return;
-      }
-
-      document.getElementById("content").value = "";
       await loadNotes();
+      if (r.ok) {
+        const data = await r.json().catch(() => ({}));
+        if (data.note) setActiveNote(data.note.id);
+      }
     };
+
+    document.getElementById("refreshBtn").onclick = loadNotes;
+    searchInput.oninput = loadNotes;
+
+    function deriveTitle(note) {
+      const firstLine = (note.content || "").split(/\r?\n/).find(Boolean) || "Untitled";
+      return firstLine.length > 60 ? firstLine.slice(0, 60) + "…" : firstLine;
+    }
+
+    function renderNote(note) {
+      activeNoteId = note.id;
+      const title = deriveTitle(note);
+      const formatted = formatContent(note.content || "");
+      notePane.innerHTML = `
+        <h1>${escapeHtml(title)}</h1>
+        <hr />
+        <div>${formatted}</div>
+      `;
+      updateCounts(note.content || "");
+      renderTabs();
+      renderOutline(note.content || "");
+      highlightActive();
+    }
+
+    function renderOutline(content) {
+      outlineList.innerHTML = "";
+      const lines = content.split(/\r?\n/);
+      lines.forEach((line, idx) => {
+        const match = line.match(/^(#{1,3})\s+(.*)/);
+        if (match) {
+          const level = match[1].length;
+          const text = match[2];
+          const item = document.createElement("div");
+          item.className = "outline-item";
+          item.style.paddingLeft = `${(level - 1) * 12}px`;
+          item.textContent = text;
+          item.onclick = () => scrollToHeading(text);
+          outlineList.appendChild(item);
+        }
+      });
+    }
+
+    function scrollToHeading(text) {
+      const headings = notePane.querySelectorAll("h1, h2, h3");
+      for (const h of headings) {
+        if (h.textContent.trim() === text.trim()) {
+          h.scrollIntoView({ behavior: "smooth", block: "start" });
+          break;
+        }
+      }
+    }
+
+    function renderTabs() {
+      tabStrip.innerHTML = "";
+      notesCache.slice(0, 5).forEach(n => {
+        const t = document.createElement("div");
+        t.className = "tab" + (n.id === activeNoteId ? " active" : "");
+        t.textContent = deriveTitle(n);
+        t.onclick = () => setActiveNote(n.id);
+        tabStrip.appendChild(t);
+      });
+    }
+
+    function highlightActive() {
+      Array.from(fileList.children).forEach(el => {
+        const id = Number(el.dataset.id);
+        el.classList.toggle("active", id === activeNoteId);
+      });
+    }
+
+    function formatContent(content) {
+      const esc = escapeHtml(content);
+      return esc
+        .replace(/^### (.*)$/gm, "<h3>$1</h3>")
+        .replace(/^## (.*)$/gm, "<h2>$1</h2>")
+        .replace(/^# (.*)$/gm, "<h1>$1</h1>")
+        .replace(/\n{2,}/g, "<p></p>")
+        .replace(/\n/g, "<br/>");
+    }
+
+    function updateCounts(text) {
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      wordCount.textContent = `${words} word${words === 1 ? "" : "s"}`;
+      charCount.textContent = `${text.length} chars`;
+    }
 
     function escapeHtml(s) {
       return String(s)
@@ -88,6 +179,52 @@
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+    }
+
+    async function loadNotes() {
+      const r = await fetch("/notes", {
+        headers: { Authorization: "Bearer " + token }
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        fileList.innerHTML = `<div class="file">Error loading notes</div>`;
+        return;
+      }
+      const query = searchInput.value.trim().toLowerCase();
+      notesCache = (data.notes || []).filter(n => {
+        if (!query) return true;
+        const blob = `${deriveTitle(n)} ${n.content || ""}`.toLowerCase();
+        return blob.includes(query);
+      });
+      renderFileList();
+      renderTabs();
+      if (activeNoteId == null && notesCache.length) {
+        setActiveNote(notesCache[0].id);
+      } else if (activeNoteId != null) {
+        const current = notesCache.find(n => n.id === activeNoteId);
+        if (current) renderNote(current);
+      }
+    }
+
+    function renderFileList() {
+      fileList.innerHTML = "";
+      notesCache.forEach(n => {
+        const el = document.createElement("div");
+        el.className = "file";
+        el.dataset.id = n.id;
+        el.innerHTML = `
+          <div>${escapeHtml(deriveTitle(n))}</div>
+          <div class="small" style="color: var(--muted);">${new Date(n.created_at).toLocaleString()}</div>
+        `;
+        el.onclick = () => setActiveNote(n.id);
+        fileList.appendChild(el);
+      });
+      highlightActive();
+    }
+
+    function setActiveNote(id) {
+      const n = notesCache.find(x => x.id === id);
+      if (n) renderNote(n);
     }
 
     loadNotes();

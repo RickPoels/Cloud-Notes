@@ -7,22 +7,29 @@
   <title>Cloud Notes - Login</title>
 </head>
 <body>
-  <h1>Cloud Notes</h1>
+  <div class="page">
+    <div class="header">
+      <h1>Cloud Notes</h1>
+      <div class="status-pill">Status: Connected</div>
+    </div>
 
-  <div class="card">
-    <h2>Register</h2>
-    <input id="regEmail" type="email" placeholder="Email" />
-    <input id="regPass" type="password" placeholder="Password (min 8)" />
-    <button id="regBtn">Create account</button>
-    <div id="regMsg" class="small"></div>
-  </div>
+    <div class="card">
+      <h2>Register</h2>
+      <p class="subtitle">Create your account to sync notes across devices.</p>
+      <input id="regEmail" type="email" placeholder="Email" />
+      <input id="regPass" type="password" placeholder="Password (min 8)" />
+      <button id="regBtn">Create account</button>
+      <div id="regMsg" class="small"></div>
+    </div>
 
-  <div class="card">
-    <h2>Login</h2>
-    <input id="logEmail" type="email" placeholder="Email" />
-    <input id="logPass" type="password" placeholder="Password" />
-    <button id="logBtn">Login</button>
-    <div id="logMsg" class="small"></div>
+    <div class="card">
+      <h2>Login</h2>
+      <p class="subtitle">Sign in with your email and password to continue.</p>
+      <input id="logEmail" type="email" placeholder="Email" />
+      <input id="logPass" type="password" placeholder="Password" />
+      <button id="logBtn">Login</button>
+      <div id="logMsg" class="small"></div>
+    </div>
   </div>
 
   <script>
