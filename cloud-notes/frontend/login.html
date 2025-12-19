@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/app.css" />
+  <title>Cloud Notes - Login</title>
+</head>
+<body>
+  <h1>Cloud Notes</h1>
+
+  <div class="card">
+    <h2>Register</h2>
+    <input id="regEmail" type="email" placeholder="Email" />
+    <input id="regPass" type="password" placeholder="Password (min 8)" />
+    <button id="regBtn">Create account</button>
+    <div id="regMsg" class="small"></div>
+  </div>
+
+  <div class="card">
+    <h2>Login</h2>
+    <input id="logEmail" type="email" placeholder="Email" />
+    <input id="logPass" type="password" placeholder="Password" />
+    <button id="logBtn">Login</button>
+    <div id="logMsg" class="small"></div>
+  </div>
+
+  <script>
+    const regBtn = document.getElementById("regBtn");
+    const logBtn = document.getElementById("logBtn");
+
+    regBtn.onclick = async () => {
+      const email = document.getElementById("regEmail").value;
+      const password = document.getElementById("regPass").value;
+      const msg = document.getElementById("regMsg");
+      msg.textContent = "";
+
+      const r = await fetch("/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await r.json().catch(() => ({}));
+      msg.textContent = r.ok ? "Registered. Now login." : (data.error || "Error");
+    };
+
+    logBtn.onclick = async () => {
+      const email = document.getElementById("logEmail").value;
+      const password = document.getElementById("logPass").value;
+      const msg = document.getElementById("logMsg");
+      msg.textContent = "";
+
+      const r = await fetch("/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        msg.textContent = data.error || "Error";
+        return;
+      }
+
+      localStorage.setItem("token", data.token);
+      window.location.href = "/notes.html";
+    };
+  </script>
+</body>
+</html>

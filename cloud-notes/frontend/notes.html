@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/app.css" />
+  <title>Cloud Notes</title>
+</head>
+<body>
+  <div class="row">
+    <h1 style="margin:0">My Notes</h1>
+    <button id="logoutBtn">Logout</button>
+  </div>
+
+  <div class="card">
+    <textarea id="content" rows="4" placeholder="Write a note..."></textarea>
+    <button id="saveBtn">Save note</button>
+    <div id="msg" class="small"></div>
+  </div>
+
+  <div id="notes"></div>
+
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token) window.location.href = "/login.html";
+
+    const notesDiv = document.getElementById("notes");
+    const msg = document.getElementById("msg");
+
+    document.getElementById("logoutBtn").onclick = () => {
+      localStorage.removeItem("token");
+      window.location.href = "/login.html";
+    };
+
+    async function loadNotes() {
+      notesDiv.innerHTML = "";
+      const r = await fetch("/notes", {
+        headers: { Authorization: "Bearer " + token }
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        msg.textContent = data.error || "Error loading notes";
+        if (r.status === 401) {
+          localStorage.removeItem("token");
+          window.location.href = "/login.html";
+        }
+        return;
+      }
+
+      data.notes.forEach(n => {
+        const el = document.createElement("div");
+        el.className = "card";
+        el.innerHTML = `
+          <div class="small">${new Date(n.created_at).toLocaleString()}</div>
+          <div class="note">${escapeHtml(n.content)}</div>
+        `;
+        notesDiv.appendChild(el);
+      });
+    }
+
+    document.getElementById("saveBtn").onclick = async () => {
+      const content = document.getElementById("content").value;
+      msg.textContent = "";
+
+      const r = await fetch("/notes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token
+        },
+        body: JSON.stringify({ content })
+      });
+
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        msg.textContent = data.error || "Error saving note";
+        return;
+      }
+
+      document.getElementById("content").value = "";
+      await loadNotes();
+    };
+
+    function escapeHtml(s) {
+      return String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    loadNotes();
+  </script>
+</body>
+</html>
