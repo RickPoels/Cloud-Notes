@@ -125,6 +125,7 @@ data/
 tmp/
 storage/
 uploads/
+*.sql
 
 # ------------------------------------------------------------
 # OS / editor session files

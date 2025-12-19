@@ -10,20 +10,34 @@ authRouter.post("/register", async (req, res) => {
   if (!email || !password) return res.status(400).json({ error: "email and password required" });
   if (String(password).length < 8) return res.status(400).json({ error: "password must be at least 8 chars" });
 
+  const normalizedEmail = email.toLowerCase().trim();
   const passwordHash = await bcrypt.hash(password, 12);
 
+  const client = await pool.connect();
   try {
-    const result = await pool.query(
+    await client.query("BEGIN");
+    const userResult = await client.query(
       "insert into users(email, password_hash) values ($1, $2) returning id, email",
-      [email.toLowerCase().trim(), passwordHash]
+      [normalizedEmail, passwordHash]
+    );
+    const user = userResult.rows[0];
+
+    // create a default vault for the user
+    await client.query(
+      "insert into vaults(user_id, name) values ($1, $2)",
+      [user.id, "Default"]
     );
 
-    return res.status(201).json({ id: result.rows[0].id, email: result.rows[0].email });
+    await client.query("COMMIT");
+    return res.status(201).json({ id: user.id, email: user.email });
   } catch (e) {
-    if (String(e?.message || "").includes("unique")) {
+    await client.query("ROLLBACK");
+    if (String(e?.message || "").toLowerCase().includes("unique")) {
       return res.status(409).json({ error: "email already exists" });
     }
     return res.status(500).json({ error: "server error" });
+  } finally {
+    client.release();
   }
 });
 

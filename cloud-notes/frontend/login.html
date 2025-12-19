@@ -13,7 +13,7 @@
 
     <form class="auth-form" id="loginForm">
       <label class="auth-label" for="logEmail">Email</label>
-      <input id="logEmail" class="auth-input" type="email" required />
+      <input id="logEmail" class="auth-input" type="text" required />
 
       <div style="display:flex; justify-content: space-between; align-items: center;">
         <label class="auth-label" for="logPass">Password</label>
@@ -60,7 +60,7 @@
       clearMessage();
 
       if (!isValidEmail(email)) {
-        setMessage("error", "Please enter a valid email address.");
+        setMessage("error", `Use an '@' in the email address. '${email || "value"}' is missing an '@'.`);
         return;
       }
       if (!isValidPassword(password)) {

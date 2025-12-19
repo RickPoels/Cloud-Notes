@@ -9,19 +9,30 @@
 <body>
   <div class="layout">
     <div class="ribbon">
-      <button title="Explorer">📂</button>
+      <button title="Explorer">📁</button>
       <button title="Search">🔍</button>
-      <button title="Backlinks">🔗</button>
+      <button title="Links">🔗</button>
       <button title="Settings">⚙️</button>
     </div>
 
     <aside class="sidebar">
+      <div class="vault-selector">
+        <select id="vaultSelect" class="vault-select"></select>
+        <a class="manage-link" href="/vaults.html">Manage</a>
+      </div>
+
       <div class="section-title">Notebook</div>
       <div class="actions">
         <button id="newNoteBtn" class="primary">+ New</button>
         <button id="refreshBtn">⟳</button>
       </div>
+
       <input id="searchInput" placeholder="Search notes..." />
+
+      <div class="section-title">Folders</div>
+      <div id="folderList" class="folder-list"></div>
+
+      <div class="section-title">Notes</div>
       <div id="fileList" class="file-list"></div>
     </aside>
 
@@ -55,6 +66,8 @@
     const token = localStorage.getItem("token");
     if (!token) window.location.href = "/login.html";
 
+    const vaultSelect = document.getElementById("vaultSelect");
+    const folderListEl = document.getElementById("folderList");
     const fileList = document.getElementById("fileList");
     const notePane = document.getElementById("notePane");
     const tabStrip = document.getElementById("tabStrip");
@@ -63,8 +76,13 @@
     const outlineList = document.getElementById("outlineList");
     const searchInput = document.getElementById("searchInput");
 
+    let vaults = [];
+    let currentVaultId = localStorage.getItem("currentVaultId") || null;
+    let folders = [];
+    let currentFolderId = null; // null = inbox / no folder
     let notesCache = [];
     let activeNoteId = null;
+    const noteDetails = new Map(); // noteId -> detail
 
     document.getElementById("logoutBtn").onclick = () => {
       localStorage.removeItem("token");
@@ -72,49 +90,65 @@
     };
 
     document.getElementById("newNoteBtn").onclick = async () => {
-      const r = await fetch("/notes", {
+      if (!currentVaultId) return;
+      const r = await fetch(`/vaults/${currentVaultId}/notes`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: "Bearer " + token
         },
-        body: JSON.stringify({ content: "New note" })
+        body: JSON.stringify({ title: "Untitled", content: "", folder_id: currentFolderId })
       });
-      await loadNotes();
       if (r.ok) {
         const data = await r.json().catch(() => ({}));
-        if (data.note) setActiveNote(data.note.id);
+        await loadNotes();
+        if (data.note) setActiveNote(data.note.id, true);
       }
     };
 
-    document.getElementById("refreshBtn").onclick = loadNotes;
-    searchInput.oninput = loadNotes;
+    document.getElementById("refreshBtn").onclick = () => {
+      loadVaults();
+    };
+    searchInput.oninput = () => renderFileList();
+
+    vaultSelect.onchange = () => {
+      currentVaultId = vaultSelect.value || null;
+      if (currentVaultId) localStorage.setItem("currentVaultId", currentVaultId);
+      currentFolderId = null;
+      activeNoteId = null;
+      noteDetails.clear();
+      loadFolders();
+      loadNotes();
+    };
 
     function deriveTitle(note) {
-      const firstLine = (note.content || "").split(/\r?\n/).find(Boolean) || "Untitled";
-      return firstLine.length > 60 ? firstLine.slice(0, 60) + "…" : firstLine;
+      const t = (note.title || "").trim();
+      if (t) return t.length > 60 ? t.slice(0, 60) + "…" : t;
+      return "Untitled";
     }
 
-    function renderNote(note) {
-      activeNoteId = note.id;
-      const title = deriveTitle(note);
-      const formatted = formatContent(note.content || "");
+    function renderNote(detail) {
+      if (!detail) return;
+      activeNoteId = detail.id;
+      noteDetails.set(detail.id, detail);
+      const title = deriveTitle(detail);
+      const formatted = formatContent(detail.content || "");
       notePane.innerHTML = `
         <h1>${escapeHtml(title)}</h1>
         <hr />
         <div>${formatted}</div>
       `;
-      updateCounts(note.content || "");
+      updateCounts(detail.content || "");
       renderTabs();
-      renderOutline(note.content || "");
+      renderOutline(detail.content || "");
       highlightActive();
     }
 
     function renderOutline(content) {
       outlineList.innerHTML = "";
       const lines = content.split(/\r?\n/);
-      lines.forEach((line, idx) => {
-        const match = line.match(/^(#{1,3})\s+(.*)/);
+      lines.forEach((line) => {
+        const match = line.match(/^(#{1,3})\\s+(.*)/);
         if (match) {
           const level = match[1].length;
           const text = match[2];
@@ -144,14 +178,14 @@
         const t = document.createElement("div");
         t.className = "tab" + (n.id === activeNoteId ? " active" : "");
         t.textContent = deriveTitle(n);
-        t.onclick = () => setActiveNote(n.id);
+        t.onclick = () => setActiveNote(n.id, true);
         tabStrip.appendChild(t);
       });
     }
 
     function highlightActive() {
       Array.from(fileList.children).forEach(el => {
-        const id = Number(el.dataset.id);
+        const id = el.dataset.id;
         el.classList.toggle("active", id === activeNoteId);
       });
     }
@@ -162,12 +196,12 @@
         .replace(/^### (.*)$/gm, "<h3>$1</h3>")
         .replace(/^## (.*)$/gm, "<h2>$1</h2>")
         .replace(/^# (.*)$/gm, "<h1>$1</h1>")
-        .replace(/\n{2,}/g, "<p></p>")
-        .replace(/\n/g, "<br/>");
+        .replace(/\\n{2,}/g, "<p></p>")
+        .replace(/\\n/g, "<br/>");
     }
 
     function updateCounts(text) {
-      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      const words = text.trim() ? text.trim().split(/\\s+/).length : 0;
       wordCount.textContent = `${words} word${words === 1 ? "" : "s"}`;
       charCount.textContent = `${text.length} chars`;
     }
@@ -181,8 +215,73 @@
         .replaceAll("'", "&#039;");
     }
 
+    async function loadVaults() {
+      const r = await fetch("/vaults", {
+        headers: { Authorization: "Bearer " + token }
+      });
+      const data = await r.json().catch(() => ({}));
+      vaults = data.vaults || [];
+      vaultSelect.innerHTML = "";
+      vaults.forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v.id;
+        opt.textContent = v.name;
+        vaultSelect.appendChild(opt);
+      });
+      if (!currentVaultId && vaults.length) {
+        currentVaultId = vaults[0].id;
+      } else if (currentVaultId && !vaults.find(v => v.id === currentVaultId) && vaults.length) {
+        currentVaultId = vaults[0].id;
+      }
+      if (currentVaultId) {
+        vaultSelect.value = currentVaultId;
+        localStorage.setItem("currentVaultId", currentVaultId);
+        await loadFolders();
+        await loadNotes();
+      } else {
+        fileList.innerHTML = "<div class='file'>No vaults. Create one in Manage.</div>";
+      }
+    }
+
+    async function loadFolders() {
+      if (!currentVaultId) return;
+      const r = await fetch(`/vaults/${currentVaultId}/folders`, {
+        headers: { Authorization: "Bearer " + token }
+      });
+      const data = await r.json().catch(() => ({}));
+      folders = data.folders || [];
+      renderFolderList();
+    }
+
+    function renderFolderList() {
+      folderListEl.innerHTML = "";
+      const inbox = document.createElement("div");
+      inbox.className = "folder-item" + (currentFolderId ? "" : " active");
+      inbox.textContent = "Inbox";
+      inbox.onclick = () => {
+        currentFolderId = null;
+        loadNotes();
+      };
+      folderListEl.appendChild(inbox);
+
+      folders.forEach(f => {
+        const el = document.createElement("div");
+        el.className = "folder-item" + (currentFolderId === f.id ? " active" : "");
+        el.textContent = f.name;
+        el.onclick = () => {
+          currentFolderId = f.id;
+          loadNotes();
+        };
+        folderListEl.appendChild(el);
+      });
+    }
+
     async function loadNotes() {
-      const r = await fetch("/notes", {
+      if (!currentVaultId) return;
+      const params = new URLSearchParams();
+      if (currentFolderId) params.set("folder_id", currentFolderId);
+      params.set("archived", "false");
+      const r = await fetch(`/vaults/${currentVaultId}/notes?${params.toString()}`, {
         headers: { Authorization: "Bearer " + token }
       });
       const data = await r.json().catch(() => ({}));
@@ -193,16 +292,16 @@
       const query = searchInput.value.trim().toLowerCase();
       notesCache = (data.notes || []).filter(n => {
         if (!query) return true;
-        const blob = `${deriveTitle(n)} ${n.content || ""}`.toLowerCase();
+        const blob = `${deriveTitle(n)}`.toLowerCase();
         return blob.includes(query);
       });
       renderFileList();
       renderTabs();
       if (activeNoteId == null && notesCache.length) {
-        setActiveNote(notesCache[0].id);
+        setActiveNote(notesCache[0].id, true);
       } else if (activeNoteId != null) {
-        const current = notesCache.find(n => n.id === activeNoteId);
-        if (current) renderNote(current);
+        const detail = noteDetails.get(activeNoteId);
+        if (detail) renderNote(detail);
       }
     }
 
@@ -214,20 +313,39 @@
         el.dataset.id = n.id;
         el.innerHTML = `
           <div>${escapeHtml(deriveTitle(n))}</div>
-          <div class="small" style="color: var(--muted);">${new Date(n.created_at).toLocaleString()}</div>
+          <div class="small" style="color: var(--muted);">${new Date(n.updated_at || n.created_at).toLocaleString()}</div>
         `;
-        el.onclick = () => setActiveNote(n.id);
+        el.onclick = () => setActiveNote(n.id, true);
         fileList.appendChild(el);
       });
       highlightActive();
     }
 
-    function setActiveNote(id) {
-      const n = notesCache.find(x => x.id === id);
-      if (n) renderNote(n);
+    async function setActiveNote(id, fetchDetail = false) {
+      activeNoteId = id;
+      highlightActive();
+      if (!fetchDetail) {
+        const cached = noteDetails.get(id);
+        if (cached) {
+          renderNote(cached);
+          return;
+        }
+      }
+      if (!currentVaultId) return;
+      const r = await fetch(`/vaults/${currentVaultId}/notes/${id}`, {
+        headers: { Authorization: "Bearer " + token }
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        return;
+      }
+      if (data.note) {
+        noteDetails.set(id, data.note);
+        renderNote(data.note);
+      }
     }
 
-    loadNotes();
+    loadVaults();
   </script>
 </body>
 </html>

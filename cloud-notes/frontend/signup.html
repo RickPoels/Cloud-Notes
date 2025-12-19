@@ -19,7 +19,7 @@
       <input id="fullName" class="auth-input" type="text" placeholder="Optional" />
 
       <label class="auth-label" for="regEmail">Email</label>
-      <input id="regEmail" class="auth-input" type="email" required />
+      <input id="regEmail" class="auth-input" type="text" required />
 
       <label class="auth-label" for="regPass">Password</label>
       <input id="regPass" class="auth-input" type="password" required />
@@ -63,7 +63,7 @@
       clearMessage();
 
       if (!isValidEmail(email)) {
-        setMessage("error", "Please enter a valid email address.");
+        setMessage("error", `Use an '@' in the email address. '${email || "value"}' is missing an '@'.`);
         return;
       }
       if (!isValidPassword(password)) {

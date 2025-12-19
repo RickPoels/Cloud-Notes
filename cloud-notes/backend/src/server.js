@@ -4,7 +4,10 @@ import express from "express";
 import cors from "cors";
 import { fileURLToPath } from "url";
 import { authRouter } from "./routes/auth.js";
+import { vaultsRouter } from "./routes/vaults.js";
+import { foldersRouter } from "./routes/folders.js";
 import { notesRouter } from "./routes/notes.js";
+import { tagsRouter } from "./routes/tags.js";
 
 if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET missing");
 
@@ -18,7 +21,10 @@ app.use(cors({
 app.get("/health", (req, res) => res.json({ ok: true }));
 
 app.use("/auth", authRouter);
-app.use("/notes", notesRouter);
+app.use("/vaults", vaultsRouter);
+app.use("/vaults/:vaultId/folders", foldersRouter);
+app.use("/vaults/:vaultId/notes", notesRouter);
+app.use("/vaults/:vaultId/tags", tagsRouter);
 
 // Serve static frontend from ../frontend
 const __filename = fileURLToPath(import.meta.url);

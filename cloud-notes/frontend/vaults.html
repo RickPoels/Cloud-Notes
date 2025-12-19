@@ -1,0 +1,156 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/app.css" />
+  <title>Vaults</title>
+  <style>
+    .vault-page {
+      min-height: 100vh;
+      background: #0c0d10;
+      color: #eef1f6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+    }
+    .vault-card {
+      width: 100%;
+      max-width: 680px;
+      background: #111318;
+      border: 1px solid #1f242c;
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+    }
+    .vault-card h1 { margin: 0 0 12px; }
+    .vault-list {
+      margin: 12px 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .vault-item {
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid #1f242c;
+      background: #15181e;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #eef1f6;
+    }
+    .vault-item button {
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #4f8bff;
+      background: #4f8bff;
+      color: white;
+      cursor: pointer;
+    }
+    .vault-form {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .vault-form input {
+      flex: 1;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid #1f242c;
+      background: #14161c;
+      color: #eef1f6;
+    }
+    .vault-form button {
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid #4f8bff;
+      background: #4f8bff;
+      color: white;
+      cursor: pointer;
+    }
+    .back-link { color: #8f7bff; text-decoration: none; }
+    .back-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body class="vault-page">
+  <div class="vault-card">
+    <h1>Vaults</h1>
+    <p style="margin:0 0 12px; color:#a7afc0;">Switch or create a vault.</p>
+
+    <div id="vaultList" class="vault-list"></div>
+
+    <form id="vaultForm" class="vault-form">
+      <input id="vaultName" placeholder="New vault name" required />
+      <button type="submit">Create</button>
+    </form>
+    <div id="vaultMsg" class="small"></div>
+
+    <p style="margin-top:16px;">
+      <a class="back-link" href="/notes.html">Back to notes</a>
+    </p>
+  </div>
+
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token) window.location.href = "/login.html";
+
+    const vaultList = document.getElementById("vaultList");
+    const vaultForm = document.getElementById("vaultForm");
+    const vaultMsg = document.getElementById("vaultMsg");
+
+    async function loadVaults() {
+      const r = await fetch("/vaults", { headers: { Authorization: "Bearer " + token }});
+      const data = await r.json().catch(() => ({}));
+      const vaults = data.vaults || [];
+      vaultList.innerHTML = "";
+      if (!vaults.length) {
+        vaultList.innerHTML = "<div class='vault-item'>No vaults yet.</div>";
+      } else {
+        vaults.forEach(v => {
+          const el = document.createElement("div");
+          el.className = "vault-item";
+          const info = document.createElement("div");
+          info.innerHTML = `<div>${v.name}</div><div class="small" style="color:#a7afc0;">${new Date(v.created_at).toLocaleString()}</div>`;
+          const openBtn = document.createElement("button");
+          openBtn.textContent = "Open";
+          openBtn.onclick = () => {
+            // store selection
+            localStorage.setItem("currentVaultId", v.id);
+            window.location.href = "/notes.html";
+          };
+          el.appendChild(info);
+          el.appendChild(openBtn);
+          vaultList.appendChild(el);
+        });
+      }
+    }
+
+    vaultForm.onsubmit = async (e) => {
+      e.preventDefault();
+      vaultMsg.textContent = "";
+      const name = document.getElementById("vaultName").value.trim();
+      if (!name) return;
+      const r = await fetch("/vaults", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token
+        },
+        body: JSON.stringify({ name })
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        vaultMsg.textContent = data.error || "Could not create vault.";
+        return;
+      }
+      document.getElementById("vaultName").value = "";
+      vaultMsg.textContent = "Vault created.";
+      await loadVaults();
+    };
+
+    loadVaults();
+  </script>
+</body>
+</html>
