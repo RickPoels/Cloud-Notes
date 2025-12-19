@@ -295,6 +295,38 @@ button.primary:hover { background: var(--accent-strong); }
 .auth-input:focus {
   outline: 2px solid rgba(121, 99, 255, 0.4);
   border-color: #6f48ff;
+  background: #14161c;
+}
+
+/* keep autofill dark */
+.auth-input:-webkit-autofill,
+.auth-input:-webkit-autofill:hover,
+.auth-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px #14161c inset;
+  -webkit-text-fill-color: #eef1f6;
+  caret-color: #eef1f6;
+}
+
+.alert {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-weight: 600;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.alert.show { display: flex; }
+.alert-success {
+  background: #11c26f;
+  color: #0b3321;
+}
+.alert-error {
+  background: #f44336;
+  color: #fff7f7;
 }
 
 .auth-button {

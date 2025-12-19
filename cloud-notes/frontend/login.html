@@ -22,7 +22,7 @@
       <input id="logPass" class="auth-input" type="password" required />
 
       <button type="submit" class="auth-button">Sign in</button>
-      <div id="logMsg" class="small" style="text-align:center;"></div>
+      <div id="logMsg" class="alert"></div>
     </form>
 
     <div class="auth-links">
@@ -33,12 +33,40 @@
 
   <script>
     const logForm = document.getElementById("loginForm");
+    const logMsg = document.getElementById("logMsg");
+
+    function setMessage(type, text) {
+      logMsg.textContent = text;
+      logMsg.className = `alert alert-${type} show`;
+    }
+
+    function clearMessage() {
+      logMsg.className = "alert";
+      logMsg.textContent = "";
+    }
+
+    function isValidEmail(email) {
+      return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+    }
+
+    function isValidPassword(pw) {
+      return String(pw).length >= 8;
+    }
+
     logForm.onsubmit = async (e) => {
       e.preventDefault();
       const email = document.getElementById("logEmail").value;
       const password = document.getElementById("logPass").value;
-      const msg = document.getElementById("logMsg");
-      msg.textContent = "";
+      clearMessage();
+
+      if (!isValidEmail(email)) {
+        setMessage("error", "Please enter a valid email address.");
+        return;
+      }
+      if (!isValidPassword(password)) {
+        setMessage("error", "Password must be at least 8 characters.");
+        return;
+      }
 
       const r = await fetch("/auth/login", {
         method: "POST",
@@ -48,11 +76,16 @@
 
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {
-        msg.textContent = data.error || "Error";
+        if (r.status === 401) {
+          setMessage("error", "Invalid credentials.");
+        } else {
+          setMessage("error", data.error || "Login failed.");
+        }
         return;
       }
 
       localStorage.setItem("token", data.token);
+      setMessage("success", "Signed in successfully.");
       window.location.href = "/notes.html";
     };
   </script>

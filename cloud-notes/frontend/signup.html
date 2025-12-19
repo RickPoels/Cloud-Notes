@@ -25,7 +25,7 @@
       <input id="regPass" class="auth-input" type="password" required />
 
       <button type="submit" class="auth-button">Sign up</button>
-      <div id="regMsg" class="small" style="text-align:center;"></div>
+      <div id="regMsg" class="alert"></div>
     </form>
 
     <div class="auth-links">
@@ -36,12 +36,40 @@
 
   <script>
     const form = document.getElementById("signupForm");
+    const regMsg = document.getElementById("regMsg");
+
+    function setMessage(type, text) {
+      regMsg.textContent = text;
+      regMsg.className = `alert alert-${type} show`;
+    }
+
+    function clearMessage() {
+      regMsg.className = "alert";
+      regMsg.textContent = "";
+    }
+
+    function isValidEmail(email) {
+      return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+    }
+
+    function isValidPassword(pw) {
+      return String(pw).length >= 8;
+    }
+
     form.onsubmit = async (e) => {
       e.preventDefault();
       const email = document.getElementById("regEmail").value;
       const password = document.getElementById("regPass").value;
-      const msg = document.getElementById("regMsg");
-      msg.textContent = "";
+      clearMessage();
+
+      if (!isValidEmail(email)) {
+        setMessage("error", "Please enter a valid email address.");
+        return;
+      }
+      if (!isValidPassword(password)) {
+        setMessage("error", "Password must be at least 8 characters.");
+        return;
+      }
 
       const r = await fetch("/auth/register", {
         method: "POST",
@@ -51,11 +79,11 @@
 
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {
-        msg.textContent = data.error || "Error";
+        setMessage("error", data.error || "Could not create account.");
         return;
       }
 
-      msg.textContent = "Account created. Redirecting to sign in...";
+      setMessage("success", "Account created. Redirecting to sign in...");
       setTimeout(() => window.location.href = "/login.html", 800);
     };
   </script>
