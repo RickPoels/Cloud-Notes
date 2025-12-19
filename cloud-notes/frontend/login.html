@@ -4,55 +4,37 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="/app.css" />
-  <title>Cloud Notes - Login</title>
+  <title>Cloud Notes - Sign in</title>
 </head>
-<body>
-  <div class="page">
-    <div class="header">
-      <h1>Cloud Notes</h1>
-      <div class="status-pill">Status: Connected</div>
-    </div>
+<body class="auth-body">
+  <div class="auth-card">
+    <div class="auth-icon">◆</div>
+    <h1>Sign in to your account</h1>
 
-    <div class="card">
-      <h2>Register</h2>
-      <p class="subtitle">Create your account to sync notes across devices.</p>
-      <input id="regEmail" type="email" placeholder="Email" />
-      <input id="regPass" type="password" placeholder="Password (min 8)" />
-      <button id="regBtn">Create account</button>
-      <div id="regMsg" class="small"></div>
-    </div>
+    <form class="auth-form" id="loginForm">
+      <label class="auth-label" for="logEmail">Email</label>
+      <input id="logEmail" class="auth-input" type="email" required />
 
-    <div class="card">
-      <h2>Login</h2>
-      <p class="subtitle">Sign in with your email and password to continue.</p>
-      <input id="logEmail" type="email" placeholder="Email" />
-      <input id="logPass" type="password" placeholder="Password" />
-      <button id="logBtn">Login</button>
-      <div id="logMsg" class="small"></div>
+      <div style="display:flex; justify-content: space-between; align-items: center;">
+        <label class="auth-label" for="logPass">Password</label>
+        <a style="font-size:13px; color:#8f7bff; text-decoration:none;" href="#">Forgot password?</a>
+      </div>
+      <input id="logPass" class="auth-input" type="password" required />
+
+      <button type="submit" class="auth-button">Sign in</button>
+      <div id="logMsg" class="small" style="text-align:center;"></div>
+    </form>
+
+    <div class="auth-links">
+      Don't have an account?
+      <a href="/signup.html">Create an account</a>
     </div>
   </div>
 
   <script>
-    const regBtn = document.getElementById("regBtn");
-    const logBtn = document.getElementById("logBtn");
-
-    regBtn.onclick = async () => {
-      const email = document.getElementById("regEmail").value;
-      const password = document.getElementById("regPass").value;
-      const msg = document.getElementById("regMsg");
-      msg.textContent = "";
-
-      const r = await fetch("/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
-      });
-
-      const data = await r.json().catch(() => ({}));
-      msg.textContent = r.ok ? "Registered. Now login." : (data.error || "Error");
-    };
-
-    logBtn.onclick = async () => {
+    const logForm = document.getElementById("loginForm");
+    logForm.onsubmit = async (e) => {
+      e.preventDefault();
       const email = document.getElementById("logEmail").value;
       const password = document.getElementById("logPass").value;
       const msg = document.getElementById("logMsg");

@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/app.css" />
+  <title>Cloud Notes - Sign up</title>
+</head>
+<body class="auth-body">
+  <div class="auth-card">
+    <div class="auth-icon">◆</div>
+    <h1>Create an account</h1>
+    <p class="auth-desc">
+      Create your account to sync notes across devices.
+    </p>
+
+    <form class="auth-form" id="signupForm">
+      <label class="auth-label" for="fullName">Full name</label>
+      <input id="fullName" class="auth-input" type="text" placeholder="Optional" />
+
+      <label class="auth-label" for="regEmail">Email</label>
+      <input id="regEmail" class="auth-input" type="email" required />
+
+      <label class="auth-label" for="regPass">Password</label>
+      <input id="regPass" class="auth-input" type="password" required />
+
+      <button type="submit" class="auth-button">Sign up</button>
+      <div id="regMsg" class="small" style="text-align:center;"></div>
+    </form>
+
+    <div class="auth-links">
+      Already have an account?
+      <a href="/login.html">Sign in</a>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById("signupForm");
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("regEmail").value;
+      const password = document.getElementById("regPass").value;
+      const msg = document.getElementById("regMsg");
+      msg.textContent = "";
+
+      const r = await fetch("/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        msg.textContent = data.error || "Error";
+        return;
+      }
+
+      msg.textContent = "Account created. Redirecting to sign in...";
+      setTimeout(() => window.location.href = "/login.html", 800);
+    };
+  </script>
+</body>
+</html>
