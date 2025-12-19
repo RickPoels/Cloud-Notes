@@ -24,8 +24,8 @@ authRouter.post("/register", async (req, res) => {
 
     // create a default vault for the user
     await client.query(
-      "insert into vaults(user_id, name) values ($1, $2)",
-      [user.id, "Default"]
+      "insert into vaults(user_id, name, title) values ($1, $2, $3)",
+      [user.id, "Default", "Default"]
     );
 
     await client.query("COMMIT");

@@ -18,7 +18,7 @@ foldersRouter.get("/", async (req, res) => {
     return res.status(404).json({ error: "vault not found" });
   }
   const result = await pool.query(
-    "select id, name, parent_folder_id, created_at, updated_at from folders where vault_id = $1 order by name asc",
+    "select id, name, title, parent_folder_id, created_at, updated_at from folders where vault_id = $1 order by name asc",
     [vaultId]
   );
   return res.json({ folders: result.rows });
@@ -27,11 +27,13 @@ foldersRouter.get("/", async (req, res) => {
 // Create folder
 foldersRouter.post("/", async (req, res) => {
   const { vaultId } = req.params;
-  const { name, parent_folder_id: parentId } = req.body || {};
+  const { name, title, parent_folder_id: parentId } = req.body || {};
+  const useName = (name || title || "").trim();
+  const useTitle = (title || name || "").trim();
   if (!(await assertVaultAccess(req.user.id, vaultId))) {
     return res.status(404).json({ error: "vault not found" });
   }
-  if (!name || !String(name).trim()) {
+  if (!useName) {
     return res.status(400).json({ error: "name required" });
   }
 
@@ -48,8 +50,8 @@ foldersRouter.post("/", async (req, res) => {
 
   try {
     const result = await pool.query(
-      "insert into folders(vault_id, name, parent_folder_id) values ($1, $2, $3) returning id, name, parent_folder_id, created_at, updated_at",
-      [vaultId, String(name).trim(), parentId || null]
+      "insert into folders(vault_id, name, title, parent_folder_id) values ($1, $2, $3, $4) returning id, name, title, parent_folder_id, created_at, updated_at",
+      [vaultId, useName, useTitle, parentId || null]
     );
     return res.status(201).json({ folder: result.rows[0] });
   } catch (e) {

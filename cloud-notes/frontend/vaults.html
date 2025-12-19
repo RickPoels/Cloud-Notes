@@ -82,7 +82,7 @@
     <div id="vaultList" class="vault-list"></div>
 
     <form id="vaultForm" class="vault-form">
-      <input id="vaultName" placeholder="New vault name" required />
+      <input id="vaultName" placeholder="Vault title" required />
       <button type="submit">Create</button>
     </form>
     <div id="vaultMsg" class="small"></div>
@@ -112,7 +112,7 @@
           const el = document.createElement("div");
           el.className = "vault-item";
           const info = document.createElement("div");
-          info.innerHTML = `<div>${v.name}</div><div class="small" style="color:#a7afc0;">${new Date(v.created_at).toLocaleString()}</div>`;
+          info.innerHTML = `<div>${v.title || v.name}</div><div class="small" style="color:#a7afc0;">${new Date(v.created_at).toLocaleString()}</div>`;
           const openBtn = document.createElement("button");
           openBtn.textContent = "Open";
           openBtn.onclick = () => {
@@ -138,7 +138,7 @@
           "Content-Type": "application/json",
           Authorization: "Bearer " + token
         },
-        body: JSON.stringify({ name })
+        body: JSON.stringify({ name, title: name })
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {

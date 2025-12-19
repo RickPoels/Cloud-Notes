@@ -132,6 +132,30 @@ a:hover { color: var(--accent-strong); }
 .folder-item:hover { background: rgba(255,255,255,0.05); }
 .folder-item.active { border-color: var(--accent); background: rgba(79,139,255,0.14); }
 
+.folder-new {
+  display: flex;
+  gap: 8px;
+  margin: 6px 0 10px;
+}
+
+.folder-new input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel-dark);
+  color: var(--text);
+}
+
+.folder-new button {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+}
+
 .file-list {
   flex: 1;
   overflow: auto;
@@ -258,6 +282,44 @@ button.primary:hover { background: var(--accent-strong); }
 .small {
   font-size: 13px;
   color: var(--muted);
+}
+
+.note-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.note-title-input,
+.note-content-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 16px;
+}
+
+.note-content-input {
+  min-height: 280px;
+  resize: vertical;
+  line-height: 1.4;
+}
+
+.save-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.save-row button {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
 }
 
 /* Auth pages (login & signup) */

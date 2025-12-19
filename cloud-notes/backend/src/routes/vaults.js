@@ -9,7 +9,7 @@ vaultsRouter.use(requireAuth);
 // List user's vaults
 vaultsRouter.get("/", async (req, res) => {
   const result = await pool.query(
-    "select id, name, created_at, updated_at from vaults where user_id = $1 order by created_at asc",
+    "select id, name, title, created_at, updated_at from vaults where user_id = $1 order by created_at asc",
     [req.user.id]
   );
   return res.json({ vaults: result.rows });
@@ -17,14 +17,16 @@ vaultsRouter.get("/", async (req, res) => {
 
 // Create vault
 vaultsRouter.post("/", async (req, res) => {
-  const { name } = req.body || {};
-  if (!name || !String(name).trim()) {
-    return res.status(400).json({ error: "name required" });
+  const { name, title } = req.body || {};
+  const useName = (name || title || "").trim();
+  const useTitle = (title || name || "").trim();
+  if (!useName) {
+    return res.status(400).json({ error: "name/title required" });
   }
   try {
     const result = await pool.query(
-      "insert into vaults(user_id, name) values ($1, $2) returning id, name, created_at, updated_at",
-      [req.user.id, String(name).trim()]
+      "insert into vaults(user_id, name, title) values ($1, $2, $3) returning id, name, title, created_at, updated_at",
+      [req.user.id, useName, useTitle]
     );
     return res.status(201).json({ vault: result.rows[0] });
   } catch (e) {
