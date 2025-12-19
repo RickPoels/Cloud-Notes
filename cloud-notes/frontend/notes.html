@@ -53,7 +53,6 @@
           <input id="noteTitleInput" class="note-title-input" placeholder="Note title" />
           <textarea id="noteContentInput" class="note-content-input" placeholder="Write your note..."></textarea>
           <div class="save-row">
-            <button id="saveNoteBtn">Save</button>
             <span id="noteStatus" class="small"></span>
           </div>
         </div>
@@ -88,7 +87,6 @@
     const addFolderBtn = document.getElementById("addFolderBtn");
     const noteTitleInput = document.getElementById("noteTitleInput");
     const noteContentInput = document.getElementById("noteContentInput");
-    const saveNoteBtn = document.getElementById("saveNoteBtn");
     const noteStatus = document.getElementById("noteStatus");
 
     let vaults = [];
@@ -98,6 +96,7 @@
     let notesCache = [];
     let activeNoteId = null;
     const noteDetails = new Map(); // noteId -> detail
+    let saveTimer = null;
 
     document.getElementById("logoutBtn").onclick = () => {
       localStorage.removeItem("token");
@@ -360,7 +359,7 @@
       }
     };
 
-    saveNoteBtn.onclick = async () => {
+    async function saveActiveNote() {
       if (!currentVaultId || !activeNoteId) return;
       noteStatus.textContent = "Saving...";
       const body = {
@@ -384,11 +383,22 @@
       noteStatus.textContent = "Saved";
       noteDetails.set(activeNoteId, data.note);
       await loadNotes();
-    };
+    }
+
+    function scheduleSave() {
+      noteStatus.textContent = "Editing…";
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        saveActiveNote();
+      }, 800);
+    }
 
     noteContentInput.addEventListener("input", () => {
       updateCounts(noteContentInput.value);
+      scheduleSave();
     });
+
+    noteTitleInput.addEventListener("input", scheduleSave);
 
     loadVaults();
   </script>
