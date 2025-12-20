@@ -91,6 +91,14 @@
     const token = localStorage.getItem("token");
     if (!token) window.location.href = "/login.html";
 
+    async function verifyToken() {
+      const r = await fetch("/auth/me", { headers: { Authorization: "Bearer " + token } });
+      if (!r.ok) {
+        localStorage.removeItem("token");
+        window.location.href = "/login.html";
+      }
+    }
+
     const layoutRoot = document.getElementById("layoutRoot");
     const vaultSelect = document.getElementById("vaultSelect");
     const folderListEl = document.getElementById("folderList");
@@ -479,6 +487,7 @@
     noteTitleInput.addEventListener("input", scheduleSave);
 
     setSidebarMode("explorer");
+    verifyToken();
     loadVaults();
   </script>
 </body>

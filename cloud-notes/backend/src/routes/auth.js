@@ -2,13 +2,25 @@ import { Router } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { pool } from "../db.js";
+import { requireAuth } from "../middleware/auth.js";
 
 export const authRouter = Router();
+
+function passwordStrong(pw) {
+  return (
+    String(pw).length >= 8 &&
+    /[a-z]/.test(pw) &&
+    /[A-Z]/.test(pw) &&
+    /[0-9]/.test(pw)
+  );
+}
 
 authRouter.post("/register", async (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) return res.status(400).json({ error: "email and password required" });
-  if (String(password).length < 8) return res.status(400).json({ error: "password must be at least 8 chars" });
+  if (!passwordStrong(password)) {
+    return res.status(400).json({ error: "password must be 8+ chars with upper, lower, digit" });
+  }
 
   const normalizedEmail = email.toLowerCase().trim();
   const passwordHash = await bcrypt.hash(password, 12);
@@ -59,8 +71,13 @@ authRouter.post("/login", async (req, res) => {
   const token = jwt.sign(
     { email: user.email },
     process.env.JWT_SECRET,
-    { subject: String(user.id), expiresIn: "7d" }
+    { subject: String(user.id), expiresIn: "5h" }
   );
 
   return res.json({ token });
+});
+
+// Validate token and return user info
+authRouter.get("/me", requireAuth, async (req, res) => {
+  return res.json({ user: { id: req.user.id, email: req.user.email } });
 });

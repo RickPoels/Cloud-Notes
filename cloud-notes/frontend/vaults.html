@@ -96,6 +96,14 @@
     const token = localStorage.getItem("token");
     if (!token) window.location.href = "/login.html";
 
+    async function verifyToken() {
+      const r = await fetch("/auth/me", { headers: { Authorization: "Bearer " + token } });
+      if (!r.ok) {
+        localStorage.removeItem("token");
+        window.location.href = "/login.html";
+      }
+    }
+
     const vaultList = document.getElementById("vaultList");
     const vaultForm = document.getElementById("vaultForm");
     const vaultMsg = document.getElementById("vaultMsg");
@@ -150,7 +158,7 @@
       await loadVaults();
     };
 
-    loadVaults();
+    verifyToken().then(loadVaults);
   </script>
 </body>
 </html>

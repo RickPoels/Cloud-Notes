@@ -2,6 +2,8 @@ import "dotenv/config";
 import path from "path";
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { fileURLToPath } from "url";
 import { authRouter } from "./routes/auth.js";
 import { vaultsRouter } from "./routes/vaults.js";
@@ -13,6 +15,31 @@ if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET missing");
 
 const app = express();
 app.use(express.json());
+
+// Security headers and basic hardening
+app.use(helmet({
+  contentSecurityPolicy: false // keep simple; customize if serving inline scripts
+}));
+
+// Trust proxy for HTTPS detection (Render/Heroku/etc.)
+app.set("trust proxy", 1);
+
+// Enforce HTTPS in production
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV === "production" && req.headers["x-forwarded-proto"] === "http") {
+    return res.redirect(301, `https://${req.headers.host}${req.url}`);
+  }
+  next();
+});
+
+// Rate limit auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+app.use("/auth", authLimiter);
 
 app.use(cors({
   origin: process.env.CORS_ORIGIN || true
