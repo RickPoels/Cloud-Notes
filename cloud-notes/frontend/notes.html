@@ -22,6 +22,13 @@
           <a class="manage-link" href="/vaults.html">Manage</a>
         </div>
 
+        <div class="section-title">Folders</div>
+        <div class="folder-new">
+          <input id="folderNameInput" placeholder="New folder name" />
+          <button id="addFolderBtn">+ Folder</button>
+        </div>
+        <div id="folderList" class="folder-list"></div>
+
         <div class="section-title">Notebook</div>
         <div class="actions">
           <button id="newNoteBtn" class="primary">+ New</button>
@@ -29,13 +36,6 @@
         </div>
 
         <input id="searchInput" placeholder="Search notes..." />
-
-        <div class="section-title">Folders</div>
-        <div class="folder-new">
-          <input id="folderNameInput" placeholder="New folder name" />
-          <button id="addFolderBtn">+ Folder</button>
-        </div>
-        <div id="folderList" class="folder-list"></div>
 
         <div class="section-title">Notes</div>
         <div id="fileList" class="file-list"></div>
@@ -319,6 +319,28 @@
         folderListEl.appendChild(el);
       });
     }
+
+    addFolderBtn.onclick = async () => {
+      const name = folderNameInput.value.trim();
+      if (!name || !currentVaultId) return;
+      const r = await fetch(`/vaults/${currentVaultId}/folders`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token
+        },
+        body: JSON.stringify({ name, title: name })
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        noteStatus.textContent = data.error || "Folder create failed";
+        return;
+      }
+      folderNameInput.value = "";
+      if (data.folder?.id) currentFolderId = data.folder.id;
+      await loadFolders();
+      await loadNotes();
+    };
 
     addFolderBtn.onclick = async () => {
       const name = folderNameInput.value.trim();
