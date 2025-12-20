@@ -241,6 +241,7 @@ a:hover { color: var(--accent-strong); }
   display: flex;
   flex-direction: column;
   gap: 8px;
+  transition: width 0.2s ease, opacity 0.2s ease;
 }
 
 .outline h3 {
@@ -259,6 +260,19 @@ a:hover { color: var(--accent-strong); }
 }
 
 .outline-item:hover { background: rgba(255, 255, 255, 0.05); }
+
+.outline-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-dark);
+  color: var(--text);
+  cursor: pointer;
+}
 
 .statusbar {
   display: flex;

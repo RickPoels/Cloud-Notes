@@ -65,7 +65,8 @@
       </div>
     </main>
 
-    <aside class="outline">
+    <aside class="outline" id="outlinePanel">
+      <button id="outlineToggle" class="outline-toggle">⇆</button>
       <h3>Outline</h3>
       <div id="outlineList"></div>
     </aside>
@@ -82,6 +83,8 @@
     const wordCount = document.getElementById("wordCount");
     const charCount = document.getElementById("charCount");
     const outlineList = document.getElementById("outlineList");
+    const outlinePanel = document.getElementById("outlinePanel");
+    const outlineToggle = document.getElementById("outlineToggle");
     const searchInput = document.getElementById("searchInput");
     const folderNameInput = document.getElementById("folderNameInput");
     const addFolderBtn = document.getElementById("addFolderBtn");
@@ -95,8 +98,17 @@
     let currentFolderId = null;
     let notesCache = [];
     let activeNoteId = null;
-    const noteDetails = new Map(); // noteId -> detail
+    const noteDetails = new Map();
     let saveTimer = null;
+    let outlineCollapsed = false;
+
+    outlineToggle.onclick = () => {
+      outlineCollapsed = !outlineCollapsed;
+      outlinePanel.style.width = outlineCollapsed ? "0px" : "240px";
+      outlinePanel.style.opacity = outlineCollapsed ? "0" : "1";
+      outlinePanel.style.padding = outlineCollapsed ? "0" : "14px";
+      outlineToggle.textContent = outlineCollapsed ? "⇇" : "⇆";
+    };
 
     document.getElementById("logoutBtn").onclick = () => {
       localStorage.removeItem("token");
@@ -153,9 +165,9 @@
 
     function renderOutline(content) {
       outlineList.innerHTML = "";
-      const lines = content.split(/\\r?\\n/);
+      const lines = content.split(/\r?\n/);
       lines.forEach((line) => {
-        const match = line.match(/^(#{1,3})\\s+(.*)/);
+        const match = line.match(/^(#{1,3})\s+(.*)/);
         if (match) {
           const level = match[1].length;
           const text = match[2];
@@ -198,7 +210,7 @@
     }
 
     function updateCounts(text) {
-      const words = text.trim() ? text.trim().split(/\\s+/).length : 0;
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
       wordCount.textContent = `${words} word${words === 1 ? "" : "s"}`;
       charCount.textContent = `${text.length} chars`;
     }
@@ -341,23 +353,6 @@
         renderNote(data.note);
       }
     }
-
-    addFolderBtn.onclick = async () => {
-      const name = folderNameInput.value.trim();
-      if (!name || !currentVaultId) return;
-      const r = await fetch(`/vaults/${currentVaultId}/folders`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + token
-        },
-        body: JSON.stringify({ name, title: name })
-      });
-      if (r.ok) {
-        folderNameInput.value = "";
-        await loadFolders();
-      }
-    };
 
     async function saveActiveNote() {
       if (!currentVaultId || !activeNoteId) return;
