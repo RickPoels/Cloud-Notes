@@ -153,6 +153,10 @@
 
     document.getElementById("newNoteBtn").onclick = async () => {
       if (!currentVaultId) return;
+      if (!currentFolderId) {
+        noteStatus.textContent = "Select a folder first.";
+        return;
+      }
       const r = await fetch(`/vaults/${currentVaultId}/notes`, {
         method: "POST",
         headers: {
@@ -295,34 +299,55 @@
       });
       const data = await r.json().catch(() => ({}));
       folders = data.folders || [];
+      if ((!currentFolderId || !folders.find(f => f.id === currentFolderId)) && folders.length) {
+        currentFolderId = folders[0].id;
+      }
       renderFolderList();
     }
 
     function renderFolderList() {
       folderListEl.innerHTML = "";
-      const inbox = document.createElement("div");
-      inbox.className = "folder-item" + (currentFolderId ? "" : " active");
-      inbox.textContent = "Inbox";
-      inbox.onclick = () => {
-        currentFolderId = null;
-        loadNotes();
-      };
-      folderListEl.appendChild(inbox);
-
       folders.forEach(f => {
         const el = document.createElement("div");
         el.className = "folder-item" + (currentFolderId === f.id ? " active" : "");
         el.textContent = f.title || f.name;
         el.onclick = () => {
           currentFolderId = f.id;
+          activeNoteId = null;
           loadNotes();
         };
         folderListEl.appendChild(el);
       });
     }
 
+    addFolderBtn.onclick = async () => {
+      const name = folderNameInput.value.trim();
+      if (!name || !currentVaultId) return;
+      const r = await fetch(`/vaults/${currentVaultId}/folders`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token
+        },
+        body: JSON.stringify({ name, title: name })
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        noteStatus.textContent = data.error || "Folder create failed";
+        return;
+      }
+      folderNameInput.value = "";
+      if (data.folder?.id) currentFolderId = data.folder.id;
+      await loadFolders();
+      await loadNotes();
+    };
+
     async function loadNotes() {
       if (!currentVaultId) return;
+      if (!currentFolderId) {
+        fileList.innerHTML = `<div class="file">Select a folder to view notes</div>`;
+        return;
+      }
       const params = new URLSearchParams();
       if (currentFolderId) params.set("folder_id", currentFolderId);
       params.set("archived", "false");
