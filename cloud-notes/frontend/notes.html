@@ -9,35 +9,51 @@
 <body>
   <div class="layout" id="layoutRoot">
     <div class="ribbon">
-      <button title="Explorer">📁</button>
-      <button title="Search">🔍</button>
-      <button title="Links">🔗</button>
-      <button title="Settings">⚙️</button>
+      <button id="btnExplorer" title="Explorer" class="active">📁</button>
+      <button id="btnSearch" title="Search">🔍</button>
+      <button id="btnLinks" title="Links">🔗</button>
+      <button id="btnSettings" title="Settings">⚙️</button>
     </div>
 
     <aside class="sidebar">
-      <div class="vault-selector">
-        <select id="vaultSelect" class="vault-select"></select>
-        <a class="manage-link" href="/vaults.html">Manage</a>
+      <div id="paneExplorer" class="sidebar-pane active">
+        <div class="vault-selector">
+          <select id="vaultSelect" class="vault-select"></select>
+          <a class="manage-link" href="/vaults.html">Manage</a>
+        </div>
+
+        <div class="section-title">Notebook</div>
+        <div class="actions">
+          <button id="newNoteBtn" class="primary">+ New</button>
+          <button id="refreshBtn">⟳</button>
+        </div>
+
+        <input id="searchInput" placeholder="Search notes..." />
+
+        <div class="section-title">Folders</div>
+        <div class="folder-new">
+          <input id="folderNameInput" placeholder="New folder name" />
+          <button id="addFolderBtn">+ Folder</button>
+        </div>
+        <div id="folderList" class="folder-list"></div>
+
+        <div class="section-title">Notes</div>
+        <div id="fileList" class="file-list"></div>
       </div>
 
-      <div class="section-title">Notebook</div>
-      <div class="actions">
-        <button id="newNoteBtn" class="primary">+ New</button>
-        <button id="refreshBtn">⟳</button>
+      <div id="paneSearch" class="sidebar-pane search-pane">
+        <input id="globalSearchInput" placeholder="Search all notes..." />
+        <div class="placeholder-card">Search across your vault (coming soon).</div>
       </div>
 
-      <input id="searchInput" placeholder="Search notes..." />
-
-      <div class="section-title">Folders</div>
-      <div class="folder-new">
-        <input id="folderNameInput" placeholder="New folder name" />
-        <button id="addFolderBtn">+ Folder</button>
+      <div id="paneLinks" class="sidebar-pane links-pane">
+        <div class="placeholder-card">Backlinks & mentions (coming soon).</div>
       </div>
-      <div id="folderList" class="folder-list"></div>
 
-      <div class="section-title">Notes</div>
-      <div id="fileList" class="file-list"></div>
+      <div id="paneSettings" class="sidebar-pane settings-pane">
+        <div class="placeholder-card">Settings panel (coming soon).</div>
+        <button id="logoutBtn" class="primary">Logout</button>
+      </div>
     </aside>
 
     <main class="main">
@@ -46,7 +62,6 @@
         <button class="nav-btn" title="Forward">→</button>
         <div class="tabstrip" id="tabStrip"></div>
         <button id="outlineToggleBtn" class="nav-btn" title="Toggle outline">⇆</button>
-        <button id="logoutBtn" class="nav-btn" title="Logout">⎋</button>
       </div>
 
       <div class="note-pane">
@@ -92,6 +107,15 @@
     const noteStatus = document.getElementById("noteStatus");
     const outlineToggleBtn = document.getElementById("outlineToggleBtn");
 
+    const btnExplorer = document.getElementById("btnExplorer");
+    const btnSearch = document.getElementById("btnSearch");
+    const btnLinks = document.getElementById("btnLinks");
+    const btnSettings = document.getElementById("btnSettings");
+    const paneExplorer = document.getElementById("paneExplorer");
+    const paneSearch = document.getElementById("paneSearch");
+    const paneLinks = document.getElementById("paneLinks");
+    const paneSettings = document.getElementById("paneSettings");
+
     let vaults = [];
     let currentVaultId = localStorage.getItem("currentVaultId") || null;
     let folders = [];
@@ -102,16 +126,30 @@
     let saveTimer = null;
     let outlineCollapsed = false;
 
+    function setSidebarMode(mode) {
+      [paneExplorer, paneSearch, paneLinks, paneSettings].forEach(p => p.classList.remove("active"));
+      [btnExplorer, btnSearch, btnLinks, btnSettings].forEach(b => b.classList.remove("active"));
+      if (mode === "explorer") { paneExplorer.classList.add("active"); btnExplorer.classList.add("active"); }
+      if (mode === "search")   { paneSearch.classList.add("active"); btnSearch.classList.add("active"); }
+      if (mode === "links")    { paneLinks.classList.add("active"); btnLinks.classList.add("active"); }
+      if (mode === "settings") { paneSettings.classList.add("active"); btnSettings.classList.add("active"); }
+    }
+
+    btnExplorer.onclick = () => setSidebarMode("explorer");
+    btnSearch.onclick = () => setSidebarMode("search");
+    btnLinks.onclick = () => setSidebarMode("links");
+    btnSettings.onclick = () => setSidebarMode("settings");
+
     outlineToggleBtn.onclick = () => {
       outlineCollapsed = !outlineCollapsed;
       layoutRoot.classList.toggle("outline-collapsed", outlineCollapsed);
       outlineToggleBtn.textContent = outlineCollapsed ? "⇇" : "⇆";
     };
 
-    document.getElementById("logoutBtn").onclick = () => {
+    document.getElementById("logoutBtn")?.addEventListener("click", () => {
       localStorage.removeItem("token");
       window.location.href = "/login.html";
-    };
+    });
 
     document.getElementById("newNoteBtn").onclick = async () => {
       if (!currentVaultId) return;
@@ -393,6 +431,7 @@
 
     noteTitleInput.addEventListener("input", scheduleSave);
 
+    setSidebarMode("explorer");
     loadVaults();
   </script>
 </body>
