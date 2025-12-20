@@ -7,7 +7,7 @@
   <title>Cloud Notes</title>
 </head>
 <body>
-  <div class="layout">
+  <div class="layout" id="layoutRoot">
     <div class="ribbon">
       <button title="Explorer">📁</button>
       <button title="Search">🔍</button>
@@ -45,6 +45,7 @@
         <button class="nav-btn" title="Back">←</button>
         <button class="nav-btn" title="Forward">→</button>
         <div class="tabstrip" id="tabStrip"></div>
+        <button id="outlineToggleBtn" class="nav-btn" title="Toggle outline">⇆</button>
         <button id="logoutBtn" class="nav-btn" title="Logout">⎋</button>
       </div>
 
@@ -66,7 +67,6 @@
     </main>
 
     <aside class="outline" id="outlinePanel">
-      <button id="outlineToggle" class="outline-toggle">⇆</button>
       <h3>Outline</h3>
       <div id="outlineList"></div>
     </aside>
@@ -76,6 +76,7 @@
     const token = localStorage.getItem("token");
     if (!token) window.location.href = "/login.html";
 
+    const layoutRoot = document.getElementById("layoutRoot");
     const vaultSelect = document.getElementById("vaultSelect");
     const folderListEl = document.getElementById("folderList");
     const fileList = document.getElementById("fileList");
@@ -83,14 +84,13 @@
     const wordCount = document.getElementById("wordCount");
     const charCount = document.getElementById("charCount");
     const outlineList = document.getElementById("outlineList");
-    const outlinePanel = document.getElementById("outlinePanel");
-    const outlineToggle = document.getElementById("outlineToggle");
     const searchInput = document.getElementById("searchInput");
     const folderNameInput = document.getElementById("folderNameInput");
     const addFolderBtn = document.getElementById("addFolderBtn");
     const noteTitleInput = document.getElementById("noteTitleInput");
     const noteContentInput = document.getElementById("noteContentInput");
     const noteStatus = document.getElementById("noteStatus");
+    const outlineToggleBtn = document.getElementById("outlineToggleBtn");
 
     let vaults = [];
     let currentVaultId = localStorage.getItem("currentVaultId") || null;
@@ -102,12 +102,10 @@
     let saveTimer = null;
     let outlineCollapsed = false;
 
-    outlineToggle.onclick = () => {
+    outlineToggleBtn.onclick = () => {
       outlineCollapsed = !outlineCollapsed;
-      outlinePanel.style.width = outlineCollapsed ? "0px" : "240px";
-      outlinePanel.style.opacity = outlineCollapsed ? "0" : "1";
-      outlinePanel.style.padding = outlineCollapsed ? "0" : "14px";
-      outlineToggle.textContent = outlineCollapsed ? "⇇" : "⇆";
+      layoutRoot.classList.toggle("outline-collapsed", outlineCollapsed);
+      outlineToggleBtn.textContent = outlineCollapsed ? "⇇" : "⇆";
     };
 
     document.getElementById("logoutBtn").onclick = () => {
